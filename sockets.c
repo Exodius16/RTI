@@ -39,8 +39,9 @@ SOCKET Accept(SOCKET sock) // utilisation des méthodes "listen()" et "accept"
 	    perror("listen()");
 	    exit(2);
 	}
-
-	csock = accept(sock, (SOCKADDR *)&csin, &csin);
+	
+	unsigned int taille = sizeof(SOCKADDR_IN);
+	csock = accept(sock, (SOCKADDR *)&csin, &taille);
 	if(csock == INVALID_SOCKET)
 	{
 	    perror("accept()");
@@ -116,14 +117,11 @@ int Receive(SOCKET sock, char *data) // renvoi le nombre de bytes reçus, vérif
 {
 	int nbrBytes = 0;
 	
-	//do
-	//{
-		if((nbrBytes = recv(sock, data, sizeof(*data), 0)) < 0)
-		{
-		    perror("recv()");
-		    return -1;
-		}
-	//} while (nbrBytes > 0 && nbrBytes < sizeof(data) - 1 );
+	do
+	{
+		nbrBytes += recv(sock, data, 256 - nbrBytes, 0);
+		printf("recus: %d / %d \n", nbrBytes, 256);
+	} while (nbrBytes > 0 && nbrBytes < 256 - 1 );
 		
 	return nbrBytes;
 }
