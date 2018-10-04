@@ -1,39 +1,6 @@
-#include "librairies/sockets/sockets.h"
-#include "librairies/csv/csv.h"
 #include "serveur_materiel.h"
-
-#include <stdio.h>
-#include <stdlib.h> 
-#include <string.h>
-
-#include <pthread.h>
-
-struct login2
-{
-	char user[16];
-	char password[32];
-};
-
-void * fn_serveur_materiel();
-void * fn_serveur_CIMP();
-void * fn_client(void*);
-
-void loadCSV2();
-
-struct login2 users[50];
-
-int nbClients = 1;
-pthread_t th_serveur_materiel, th_serveur_CIMP, th_clients[25];
-
-int port = 5040;
-
-SOCKET sock;
-SOCKET csock[25];
-
-pthread_cond_t conditionClients = PTHREAD_COND_INITIALIZER; /* Création de la condition */
-pthread_mutex_t mutexClients = PTHREAD_MUTEX_INITIALIZER; /* Création du mutex */
-
-int clients = 0;
+ 
+int clients = 0; 
 
 int main()
 {	
@@ -43,7 +10,7 @@ int main()
 	
 	printf("Création du thread serveur ...");
 	
-	ret = pthread_create(&th_serveur_materiel, NULL, fn_serveur_materiel, NULL);
+	ret = pthread_create (& th_serveur_materiel, NULL, fn_serveur_materiel, NULL);
 	if(!ret)
 	{
 		printf("\t OK \n");
@@ -53,6 +20,7 @@ int main()
 	{
 		printf("\t Erreur de création du Thread Serveur \n");
 	}
+	
 	
 	return 0;
 }
@@ -64,7 +32,7 @@ void * fn_serveur_materiel()
    	
    	printf("Création du thread serveur du protocol CIMP ...");
    	
-   	ret = pthread_create(&th_serveur_CIMP, NULL, fn_serveur_CIMP, NULL);
+   	ret = pthread_create (&th_serveur_CIMP, NULL, fn_serveur_CIMP, NULL);
 	if(!ret)
 	{
 		printf("\t OK \n");
@@ -72,7 +40,7 @@ void * fn_serveur_materiel()
 	}
 	else
 	{
-		printf("Erreur de création du Thread Serveur materiel \n");
+		printf("Erreur de création du Thread Serveur checkin \n");
 	}
    
 	return 0;
@@ -83,17 +51,10 @@ void * fn_serveur_CIMP()
 	int ret = 0, i, j;
 	SOCKET csockTemp;
 	
+	char *temp;
+	
 	//LoadProperties();
-	//loadCSV2();
-	
-	LOGIN log;
-	loadCSV("csv/login.csv", ";", &log);
-	
-	while(log.psuivant)
-	{
-		printf("%s - %s\n", log.user, log.password);
-		log = *log.psuivant;
-	}
+	loadCSV2();
 	
 	for (i=0; i<25; i++) 
 	{
@@ -104,7 +65,7 @@ void * fn_serveur_CIMP()
    	
 	for(int i = 0; i < nbClients; i++)
 	{
-		ret = pthread_create(&th_clients[i], NULL, fn_client, (void *)i);
+		ret = pthread_create (& th_clients[i], NULL, fn_client, &i);
 		if(!ret)
 		{
 			printf("\t OK");
@@ -122,9 +83,9 @@ void * fn_serveur_CIMP()
 	while(1)
 	{
 		csockTemp = Accept(sock);
-		for(j=0; j<25 && csock[j] != -1; j++);
+		for (j=0; j<25 && csock[j] != -1; j++);
 		
-		if(j >= 25)
+		if (j >= 25)
 		{
 			printf("Plus de connexion disponible;\n");
 		}
@@ -138,7 +99,6 @@ void * fn_serveur_CIMP()
 			pthread_cond_signal(&conditionClients);		
 			pthread_mutex_unlock(&mutexClients);////UNLOCK
 		}
-		
 		sleep(1);  
 	}
 	
@@ -150,8 +110,8 @@ void * fn_serveur_CIMP()
 void * fn_client(void *client)
 {
 	int test;
-	char /*req[10],*/ user[17], password[33]/*, ticket[17], num[3]*/;
-	int i, leave, stop;
+	char user[17], password[33];
+	int i, leave = 0, stop;
 	SOCKET csockTest;
 	
 	char buffer[256];
@@ -182,7 +142,7 @@ void * fn_client(void *client)
 			
 			strcpy(type, strtok(buffer, ";"));
 			strcpy(message, strtok(NULL, "\0"));
-			
+		
 			if(strcmp(type, "LOGIN") == 0)
 			{	
 				strcpy(user, strtok(message, ";"));
@@ -225,7 +185,8 @@ void loadCSV2()
 	FILE *f;
 	int i;
 	
-	f = fopen("csv/login.csv","r+b");
+	
+	f=fopen("csv/login.csv","r+b");
 	if(!f)
 	{
 		printf("Fichier login.csv impossible à ouvrir !");
@@ -233,7 +194,7 @@ void loadCSV2()
 
 
 	i = 0;
-	while(fgets( temp, 60, f) != NULL)
+	while ( fgets( temp, 60, f) != NULL )
 	{
 		strcpy(users[i].user, strtok(temp,";")); // appel d'initialisation de strtok. Séparateur = ';'
 		strcpy(users[i].password, strtok(NULL,";")); // remplace le prochain séparateur trouvé par 0,
